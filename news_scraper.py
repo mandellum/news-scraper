@@ -1,32 +1,55 @@
-// Thanks ChatGPT
-
 import requests
 
-SERPAPI_KEY = "your_serpapi_key"
+# Define accepted sources
+ACCEPTED_SOURCES = {"Associated Press", "Reuters", "BBC"}
 
-params = {
-    "engine": "google_news",
-    "q": "top news",  # Query for top news
-    "hl": "en",       # Language (English)
-    "gl": "us",       # Country (United States)
-    "num": 1,         # Get only the top 1 news story
-    "api_key": SERPAPI_KEY
-}
+def get_filtered_news(api_key, query, date):
+    """Fetch and filter top news from AP, Reuters, and BBC."""
+    url = "https://serpapi.com/search"
+    params = {
+        "engine": "google_news",
+        "q": query,
+        "api_key": api_key,
+        "tbs": f"cdr:1,cd_min:{date},cd_max:{date}",
+        "hl": "en",
+        "gl": "us",
+        "num": 10
+    }
 
-response = requests.get("https://serpapi.com/search", params=params)
-news_data = response.json()
+    response = requests.get(url, params=params)
+    data = response.json()
 
-# Extract the first news result
-if "news_results" in news_data:
-    top_news = news_data["news_results"][0]  # First news story
-    title = top_news["title"]
-    link = top_news["link"]
-    source = top_news["source"]
-    published = top_news["date"]
+    return [
+        f"{article['title']} - {article['source']} ({article['link']})"
+        for article in data.get("news_results", [])
+        if article.get("source") in ACCEPTED_SOURCES
+    ][:2]
 
-    print(f"Title: {title}")
-    print(f"Source: {source}")
-    print(f"Published: {published}")
-    print(f"Link: {link}")
-else:
-    print("No news results found.")
+def main():
+    # Ask for user input
+    api_key = input("Enter your SerpAPI Key: ").strip()
+    date = input("Enter the date (YYYY-MM-DD) for the news: ").strip()
+
+    if not api_key:
+        print("API Key is required. Exiting...")
+        return
+
+    try:
+        # Fetch and filter news
+        us_news = get_filtered_news(api_key, "top news in the US", date)
+        world_news = get_filtered_news(api_key, "world news", date)
+
+        # Output results
+        print("\nTop US News Stories (From AP, Reuters, BBC):")
+        for i, story in enumerate(us_news, 1):
+            print(f"{i}. {story}")
+
+        print("\nTop World News Stories (From AP, Reuters, BBC):")
+        for i, story in enumerate(world_news, 1):
+            print(f"{i}. {story}")
+
+    except Exception as e:
+        print(f"Error fetching news: {e}")
+
+if __name__ == "__main__":
+    main()

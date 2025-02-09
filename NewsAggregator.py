@@ -8,7 +8,7 @@ ACCEPTED_SOURCES = {"The Associated Press", "Reuters", "BBC.com"}
 
 # Google Sheets Setup
 SHEET_NAME = "News_Aggregator"  # Change to your Google Sheet name
-CREDENTIALS_FILE = "credentials.json"  # Path to your downloaded JSON file
+CREDENTIALS_FILE = "config/credentials.json"  # Path to your downloaded JSON file
 
 def authenticate_google_sheets():
     """Authenticate and return the Google Sheets client."""

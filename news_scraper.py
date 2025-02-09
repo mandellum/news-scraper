@@ -1,10 +1,10 @@
 import requests
 
-# Define accepted sources (adjusted for exact names in the API response)
+# Define accepted sources (must match exact spelling in API response)
 ACCEPTED_SOURCES = {"The Associated Press", "Reuters", "BBC.com"}
 
-def get_filtered_news(api_key, query, date):
-    """Fetch and filter top news from AP, Reuters, and BBC."""
+def get_news_by_source(api_key, query, date):
+    """Fetch and return the top story per source for AP, Reuters, and BBC.com."""
     url = "https://serpapi.com/search"
     params = {
         "engine": "google_news",
@@ -13,7 +13,7 @@ def get_filtered_news(api_key, query, date):
         "tbs": f"cdr:1,cd_min:{date},cd_max:{date}",  # Filter by date
         "hl": "en",
         "gl": "us",
-        "num": 10  # Get more stories to ensure we get results
+        "num": 20  # Fetch more stories to increase chances of getting desired sources
     }
 
     response = requests.get(url, params=params)
@@ -22,20 +22,26 @@ def get_filtered_news(api_key, query, date):
     # Print the raw response data for debugging (you can remove this line later)
     # print("Raw API Response:", data)
 
-    # Ensure the 'news_results' key exists and is properly formatted
-    if 'news_results' not in data:
+    # Ensure 'news_results' exists in response
+    if "news_results" not in data:
         print("Error: 'news_results' key not found in the response.")
-        return []
+        return {}
 
-    # Ensure filtering works on the source name
-    filtered_news = []
-    for article in data.get("news_results", []):
+    # Dictionary to store one story per source
+    news_by_source = {source: None for source in ACCEPTED_SOURCES}
+
+    for article in data["news_results"]:
         source_name = article.get("source", {}).get("name", "")
-        # Check if the source name is in the accepted sources
-        if source_name in ACCEPTED_SOURCES:
-            filtered_news.append(f"{article['title']} - {source_name} ({article['link']})")
 
-    return filtered_news[:2]  # Return top 2 stories
+        # Ensure we only process articles from desired sources
+        if source_name in ACCEPTED_SOURCES and news_by_source[source_name] is None:
+            news_by_source[source_name] = f"{article['title']} - {source_name} ({article['link']})"
+
+        # Stop when we have collected one story per source
+        if all(news_by_source.values()):
+            break
+
+    return news_by_source
 
 def main():
     # Ask for user input
@@ -47,24 +53,18 @@ def main():
         return
 
     try:
-        # Fetch and filter news
-        us_news = get_filtered_news(api_key, "top news in the US", date)
-        world_news = get_filtered_news(api_key, "world news", date)
+        # Fetch US news and world news
+        us_news = get_news_by_source(api_key, "top news in the US", date)
+        world_news = get_news_by_source(api_key, "world news", date)
 
         # Output results
-        if us_news:
-            print("\nTop US News Stories (From AP, Reuters, BBC):")
-            for i, story in enumerate(us_news, 1):
-                print(f"{i}. {story}")
-        else:
-            print("\nNo US news found from AP, Reuters, or BBC.")
+        print("\nTop US News Stories (One per Source):")
+        for source in ACCEPTED_SOURCES:
+            print(f"{source}: {us_news.get(source, 'No story found.')}")
 
-        if world_news:
-            print("\nTop World News Stories (From AP, Reuters, BBC):")
-            for i, story in enumerate(world_news, 1):
-                print(f"{i}. {story}")
-        else:
-            print("\nNo world news found from AP, Reuters, or BBC.")
+        print("\nTop World News Stories (One per Source):")
+        for source in ACCEPTED_SOURCES:
+            print(f"{source}: {world_news.get(source, 'No story found.')}")
 
     except Exception as e:
         print(f"Error fetching news: {e}")

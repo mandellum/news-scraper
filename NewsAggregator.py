@@ -1,7 +1,15 @@
 import requests
 import gspread
+import os
+from dotenv import load_dotenv
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Read SerpAPI key from the .env file
+SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 
 # Define accepted sources (must match exact spelling in API response)
 ACCEPTED_SOURCES = {"The Associated Press", "Reuters", "BBC.com"}
@@ -9,6 +17,9 @@ ACCEPTED_SOURCES = {"The Associated Press", "Reuters", "BBC.com"}
 # Google Sheets Setup
 SHEET_NAME = "News_Aggregator"  # Change to your Google Sheet name
 CREDENTIALS_FILE = "config/credentials.json"  # Path to your downloaded JSON file
+
+if not SERPAPI_KEY:
+    raise ValueError("Error: SERPAPI_KEY is missing! Make sure it's set in the .env file.")
 
 def authenticate_google_sheets():
     """Authenticate and return the Google Sheets client."""

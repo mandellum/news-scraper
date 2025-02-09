@@ -1,7 +1,7 @@
 import requests
 
-# Define accepted sources
-ACCEPTED_SOURCES = {"Associated Press", "Reuters", "BBC"}
+# Define accepted sources (adjusted for exact names in the API response)
+ACCEPTED_SOURCES = {"The Associated Press", "Reuters", "BBC.com"}
 
 def get_filtered_news(api_key, query, date):
     """Fetch and filter top news from AP, Reuters, and BBC."""
@@ -10,20 +10,32 @@ def get_filtered_news(api_key, query, date):
         "engine": "google_news",
         "q": query,
         "api_key": api_key,
-        "tbs": f"cdr:1,cd_min:{date},cd_max:{date}",
+        "tbs": f"cdr:1,cd_min:{date},cd_max:{date}",  # Filter by date
         "hl": "en",
         "gl": "us",
-        "num": 10
+        "num": 10  # Get more stories to ensure we get results
     }
 
     response = requests.get(url, params=params)
     data = response.json()
 
-    return [
-        f"{article['title']} - {article['source']} ({article['link']})"
-        for article in data.get("news_results", [])
-        if article.get("source") in ACCEPTED_SOURCES
-    ][:2]
+    # Print the raw response data for debugging (you can remove this line later)
+    # print("Raw API Response:", data)
+
+    # Ensure the 'news_results' key exists and is properly formatted
+    if 'news_results' not in data:
+        print("Error: 'news_results' key not found in the response.")
+        return []
+
+    # Ensure filtering works on the source name
+    filtered_news = []
+    for article in data.get("news_results", []):
+        source_name = article.get("source", {}).get("name", "")
+        # Check if the source name is in the accepted sources
+        if source_name in ACCEPTED_SOURCES:
+            filtered_news.append(f"{article['title']} - {source_name} ({article['link']})")
+
+    return filtered_news[:2]  # Return top 2 stories
 
 def main():
     # Ask for user input
@@ -40,13 +52,19 @@ def main():
         world_news = get_filtered_news(api_key, "world news", date)
 
         # Output results
-        print("\nTop US News Stories (From AP, Reuters, BBC):")
-        for i, story in enumerate(us_news, 1):
-            print(f"{i}. {story}")
+        if us_news:
+            print("\nTop US News Stories (From AP, Reuters, BBC):")
+            for i, story in enumerate(us_news, 1):
+                print(f"{i}. {story}")
+        else:
+            print("\nNo US news found from AP, Reuters, or BBC.")
 
-        print("\nTop World News Stories (From AP, Reuters, BBC):")
-        for i, story in enumerate(world_news, 1):
-            print(f"{i}. {story}")
+        if world_news:
+            print("\nTop World News Stories (From AP, Reuters, BBC):")
+            for i, story in enumerate(world_news, 1):
+                print(f"{i}. {story}")
+        else:
+            print("\nNo world news found from AP, Reuters, or BBC.")
 
     except Exception as e:
         print(f"Error fetching news: {e}")
